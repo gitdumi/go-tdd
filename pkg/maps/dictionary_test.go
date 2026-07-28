@@ -2,14 +2,19 @@ package maps
 
 import "testing"
 
+const (
+	word       = "test"
+	definition = "value"
+)
+
 func TestSearch(t *testing.T) {
-	dictionary := Dictionary{"test": "value"}
+	dictionary := Dictionary{word: definition}
 
 	t.Run("known word", func(t *testing.T) {
-		_, err := dictionary.Search("test")
+		_, err := dictionary.Search(word)
 
-		assertNoError(t, err)
-		assertDefinition(t, dictionary, "test", "value")
+		assertError(t, err, nil)
+		assertDefinition(t, dictionary, word, definition)
 	})
 
 	t.Run("unknown word", func(t *testing.T) {
@@ -20,10 +25,56 @@ func TestSearch(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	dictionary := Dictionary{}
-	dictionary.Add("test", "value")
+	t.Run("new word", func(t *testing.T) {
+		dictionary := Dictionary{}
+		err := dictionary.Add(word, definition)
 
-	assertDefinition(t, dictionary, "test", "value")
+		assertNoError(t, err)
+		assertDefinition(t, dictionary, word, definition)
+	})
+
+	t.Run("existing word", func(t *testing.T) {
+		dictionary := Dictionary{word: definition}
+		err := dictionary.Add(word, "duplicate")
+
+		assertError(t, err, ErrWordExists)
+	})
+}
+
+func TestUpdate(t *testing.T) {
+	t.Run("existing word", func(t *testing.T) {
+		dictionary := Dictionary{word: definition}
+		err := dictionary.Update(word, "new value")
+
+		assertNoError(t, err)
+		assertDefinition(t, dictionary, word, "new value")
+	})
+
+	t.Run("new word", func(t *testing.T) {
+		dictionary := Dictionary{word: definition}
+		err := dictionary.Update("newWord", "new value")
+
+		assertError(t, err, ErrWordDoesNotExist)
+	})
+}
+
+func TestDelete(t *testing.T) {
+	t.Run("existing word", func(t *testing.T) {
+		dictionary := Dictionary{word: definition}
+		err := dictionary.Delete(word)
+
+		assertNoError(t, err)
+
+		_, err = dictionary.Search(word)
+		assertError(t, err, ErrNotFound)
+	})
+
+	t.Run("non-existing word", func(t *testing.T) {
+		dictionary := Dictionary{word: definition}
+		err := dictionary.Delete("someWord")
+
+		assertError(t, err, ErrCantDelete)
+	})
 }
 
 func assertStrings(t testing.TB, got, want string) {
